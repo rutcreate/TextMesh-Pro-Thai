@@ -12,6 +12,7 @@ namespace TMPro.EditorUtilities
         static readonly GUIContent k_RtlToggleLabel = new GUIContent("Enable RTL Editor", "Reverses text direction and allows right to left editing.");
         //static readonly GUIContent k_MainSettingsLabel = new GUIContent("Main Settings");
         static readonly GUIContent k_FontAssetLabel = new GUIContent("Font Asset", "The Font Asset containing the glyphs that can be rendered for this text.");
+        static readonly GUIContent k_FixThaiVowelLabel = new GUIContent("Fix Thai Vowel", "Determines if Thai's vowel should be fixed.");
         static readonly GUIContent k_MaterialPresetLabel = new GUIContent("Material Preset", "The material used for rendering. Only materials created from the Font Asset can be used.");
         static readonly GUIContent k_StyleLabel = new GUIContent("Text Style", "The style from a style sheet to be applied to the text.");
         static readonly GUIContent k_AutoSizeLabel = new GUIContent("Auto Size", "Auto sizes the text to fit the available space.");
@@ -96,6 +97,7 @@ namespace TMPro.EditorUtilities
         protected string m_RtlText;
 
         protected SerializedProperty m_FontAssetProp;
+        protected SerializedProperty m_FixThaiVowelProp;
 
         protected SerializedProperty m_FontSharedMaterialProp;
         protected Material[] m_MaterialPresets;
@@ -185,6 +187,7 @@ namespace TMPro.EditorUtilities
             m_TextProp = serializedObject.FindProperty("m_text");
             m_IsRightToLeftProp = serializedObject.FindProperty("m_isRightToLeft");
             m_FontAssetProp = serializedObject.FindProperty("m_fontAsset");
+            m_FixThaiVowelProp = serializedObject.FindProperty("m_fixThaiVowel");
             m_FontSharedMaterialProp = serializedObject.FindProperty("m_sharedMaterial");
 
             m_FontStyleProp = serializedObject.FindProperty("m_fontStyle");
@@ -511,6 +514,14 @@ namespace TMPro.EditorUtilities
             }
 
             Rect rect;
+
+            // FIX THAI VOWEL.
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(m_FixThaiVowelProp, k_FixThaiVowelLabel);
+            if (EditorGUI.EndChangeCheck())
+            {
+                m_HavePropertiesChanged = true;
+            }
 
             // MATERIAL PRESET
             if (m_MaterialPresetNames != null && !isFontAssetDirty )

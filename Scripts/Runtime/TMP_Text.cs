@@ -170,6 +170,18 @@ namespace TMPro
 
 
         /// <summary>
+        /// Determines if Thai's vowel should be fixed.
+        /// </summary>
+        public bool fixThaiVowel
+        {
+            get { return m_fixThaiVowel; }
+            set { m_fixThaiVowel = value; }
+        }
+        [SerializeField]
+        protected bool m_fixThaiVowel = true;
+
+
+        /// <summary>
         /// The material to be assigned to this text object.
         /// </summary>
         public virtual Material fontSharedMaterial
@@ -1888,6 +1900,11 @@ namespace TMPro
                     break;
                 case TextInputSources.SetCharArray:
                     break;
+            }
+
+            if (m_fixThaiVowel)
+            {
+                FixThaiVowel();
             }
 
             SetArraySizes(m_InternalParsingBuffer);
@@ -9652,5 +9669,318 @@ namespace TMPro
 
             return false;
         }
+
+        #region Fix Thai Vowel
+
+        // Lower level characters
+        private const int SARA_U = 3640;
+        private const int SARA_UU = 3641;
+        private const int PHINTHU = 3642;
+
+        // Lower level characters after pullDown
+        private const int SARA_U_DOWN = 63256;
+        private const int SARA_UU_DOWN = 63257;
+        private const int PHINTHU_DOWN = 63258;
+
+        // Upper level 1 characters
+        private const int MAI_HAN_AKAT = 3633;
+        private const int SARA_AM = 3635;
+        private const int SARA_I = 3636;
+        private const int SARA_Ii = 3637;
+        private const int SARA_Ue = 3638;
+        private const int SARA_Uee = 3639;
+        private const int MAI_TAI_KHU = 3655;
+
+        // Upper level 1 characters after shift left
+        private const int MAI_HAN_AKAT_LEFT_SHIFT = 63248;
+        private const int SARA_I_LEFT_SHIFT = 63233;
+        private const int SARA_Ii_LEFT_SHIFT = 63234;
+        private const int SARA_Ue_LEFT_SHIFT = 63235;
+        private const int SARA_Uee_LEFT_SHIFT = 63236;
+        private const int MAI_TAI_KHU_LEFT_SHIFT = 63250;
+
+        // Upper level 2 characters
+        private const int MAI_EK = 3656;
+        private const int MAI_THO = 3657;
+        private const int MAI_TRI = 3658;
+        private const int MAI_CHATTAWA = 3659;
+        private const int THANTHAKHAT = 3660;
+        private const int NIKHAHIT = 3661;
+
+        // Upper level 2 characters after pull down
+        private const int MAI_EK_DOWN = 63242;
+        private const int MAI_THO_DOWN = 63243;
+        private const int MAI_TRI_DOWN = 63244;
+        private const int MAI_CHATTAWA_DOWN = 63245;
+        private const int THANTHAKHAT_DOWN = 63246;
+
+        // Upper level 2 characters after pull down and shift left
+        private const int MAI_EK_PULL_DOWN_AND_LEFT_SHIFT = 63237;
+        private const int MAI_THO_PULL_DOWN_AND_LEFT_SHIFT = 63238;
+        private const int MAI_TRI_PULL_DOWN_AND_LEFT_SHIFT = 63239;
+        private const int MAI_CHATTAWA_PULL_DOWN_AND_LEFT_SHIFT = 63240;
+        private const int THANTHAKHAT_PULL_DOWN_AND_LEFT_SHIFT = 63241;
+
+        // Upper level 2 characters after shift left
+        private const int MAI_EK_LEFT_SHIFT = 63251;
+        private const int MAI_THO_LEFT_SHIFT = 63252;
+        private const int MAI_TRI_LEFT_SHIFT = 63253;
+        private const int MAI_CHATTAWA_LEFT_SHIFT = 63254;
+        private const int THANTHAKHAT_LEFT_SHIFT = 63255;
+        private const int NIKHAHIT_LEFT_SHIFT = 63249;
+
+        // Up tail characters
+        private const int PO_PLA = 3611;
+        private const int FO_FA = 3613;
+        private const int FO_FAN = 3615;
+        private const int LOchULA = 3628;
+
+        // Down tail characters
+        private const int THO_THAN = 3600;
+        private const int YO_YING = 3597;
+        private const int DOchADA = 3598;
+        private const int TO_PATAK = 3599;
+        private const int RU = 3620;
+        private const int LU = 3622;
+
+        // Cut tail characters
+        private const int THO_THAN_CUT_TAIL = 63232;
+        private const int YO_YING_CUT_TAIL = 63247;
+
+        // for exploded SARA_AM (NIKHAHIT + SARA_AA)
+        private const int SARA_AA = 3634;
+
+        //private void ExplodeSaraAm()
+        //{
+        //    if (CountSaraAm() == 0) return;
+
+        //    List<int> buffers = new List<int>();
+        //    for (int i = 0; i < m_InternalParsingBuffer.Length; i++)
+        //    {
+        //        int charCode = m_InternalParsingBuffer[i];
+
+        //        if (i < m_InternalParsingBuffer.Length - 1 && m_InternalParsingBuffer[i + 1] == SARA_AM)
+        //        {
+        //            if (IsUpperLevel2(charCode))
+        //            {
+        //                buffers.Add(NIKHAHIT);
+        //                buffers.Add(charCode);
+        //            }
+        //            else
+        //            {
+        //                buffers.Add(charCode);
+        //                buffers.Add(NIKHAHIT);
+        //            }
+        //        }
+        //        else if (charCode == SARA_AM)
+        //        {
+        //            buffers.Add(SARA_AA);
+        //        }
+        //        else
+        //        {
+        //            buffers.Add(charCode);
+        //        }
+        //    }
+        //    m_InternalParsingBuffer = buffers.ToArray();
+        //}
+
+        private int GetPullUpCharacter(int charCode)
+        {
+            switch (charCode)
+            {
+                case MAI_EK_DOWN: return MAI_EK;
+                case MAI_THO_DOWN: return MAI_THO;
+                case MAI_TRI_DOWN: return MAI_TRI;
+                case MAI_CHATTAWA_DOWN: return MAI_CHATTAWA;
+                case THANTHAKHAT_DOWN: return THANTHAKHAT;
+                case SARA_U_DOWN: return SARA_U;
+                case SARA_UU_DOWN: return SARA_UU;
+                case PHINTHU_DOWN: return PHINTHU;
+                default: return charCode;
+            }
+        }
+
+        private int GetPullDownCharacter(int charCode)
+        {
+            switch (charCode)
+            {
+                case MAI_EK: return MAI_EK_DOWN;
+                case MAI_THO: return MAI_THO_DOWN;
+                case MAI_TRI: return MAI_TRI_DOWN;
+                case MAI_CHATTAWA: return MAI_CHATTAWA_DOWN;
+                case THANTHAKHAT: return THANTHAKHAT_DOWN;
+                case SARA_U: return SARA_U_DOWN;
+                case SARA_UU: return SARA_UU_DOWN;
+                case PHINTHU: return PHINTHU_DOWN;
+                default: return charCode;
+            }
+        }
+
+        private int GetCutTailCharacter(int charCode)
+        {
+            switch (charCode)
+            {
+                case THO_THAN: return THO_THAN_CUT_TAIL;
+                case YO_YING: return YO_YING_CUT_TAIL;
+                default: return charCode;
+            }
+        }
+
+        private int GetShiftLeftCharacter(int charCode)
+        {
+            switch (charCode)
+            {
+                case MAI_EK: return MAI_EK_LEFT_SHIFT;
+                case MAI_THO: return MAI_THO_LEFT_SHIFT;
+                case MAI_TRI: return MAI_TRI_LEFT_SHIFT;
+                case MAI_CHATTAWA: return MAI_CHATTAWA_LEFT_SHIFT;
+                case MAI_HAN_AKAT: return MAI_HAN_AKAT_LEFT_SHIFT;
+                case SARA_I: return SARA_I_LEFT_SHIFT;
+                case SARA_Ii: return SARA_Ii_LEFT_SHIFT;
+                case SARA_Ue: return SARA_Ue_LEFT_SHIFT;
+                case SARA_Uee: return SARA_Uee_LEFT_SHIFT;
+                case MAI_TAI_KHU: return MAI_TAI_KHU_LEFT_SHIFT;
+                case NIKHAHIT: return NIKHAHIT_LEFT_SHIFT;
+                default: return charCode;
+            }
+        }
+
+        private int GetPullDownAndShiftLeftCharacter(int charCode)
+        {
+            switch (charCode)
+            {
+                case MAI_EK: return MAI_EK_PULL_DOWN_AND_LEFT_SHIFT;
+                case MAI_THO: return MAI_THO_PULL_DOWN_AND_LEFT_SHIFT;
+                case MAI_TRI: return MAI_TRI_PULL_DOWN_AND_LEFT_SHIFT;
+                case MAI_CHATTAWA: return MAI_CHATTAWA_PULL_DOWN_AND_LEFT_SHIFT;
+                case MAI_HAN_AKAT: return MAI_HAN_AKAT_LEFT_SHIFT;
+                case THANTHAKHAT: return THANTHAKHAT_PULL_DOWN_AND_LEFT_SHIFT;
+                default: return charCode;
+            }
+        }
+
+        private bool IsPullDown(int charCode)
+        {
+            return charCode == MAI_EK_DOWN || charCode == MAI_THO_DOWN ||
+                charCode == MAI_TRI_DOWN || charCode == MAI_CHATTAWA_DOWN ||
+                charCode == THANTHAKHAT_DOWN || charCode == SARA_U_DOWN ||
+                charCode == SARA_UU_DOWN || charCode == PHINTHU_DOWN;
+        }
+
+        private bool IsUpTail(int charCode)
+        {
+            return charCode == PO_PLA || charCode == FO_FA || charCode == FO_FAN
+                || charCode == LOchULA;
+        }
+
+        private bool IsDownTail(int charCode)
+        {
+            return charCode == THO_THAN || charCode == YO_YING || charCode == DOchADA
+                || charCode == TO_PATAK || charCode == RU || charCode == LU;
+        }
+
+        private bool IsUpperLevel1(int charCode)
+        {
+            return charCode == MAI_HAN_AKAT || charCode == SARA_I || charCode == SARA_Ii
+                || charCode == SARA_Ue || charCode == SARA_Uee || charCode == MAI_TAI_KHU
+                || charCode == NIKHAHIT;
+        }
+
+        private bool IsUpperLevel2(int charCode)
+        {
+            return charCode == MAI_EK || charCode == MAI_THO || charCode == MAI_TRI
+                || charCode == MAI_CHATTAWA || charCode == THANTHAKHAT;
+        }
+
+        private bool IsLeftShiftUpperLevel1(int charCode)
+        {
+            return charCode == MAI_HAN_AKAT_LEFT_SHIFT || charCode == SARA_I_LEFT_SHIFT
+                || charCode == SARA_Ii_LEFT_SHIFT || charCode == SARA_Ue_LEFT_SHIFT
+                || charCode == SARA_Uee_LEFT_SHIFT || charCode == MAI_TAI_KHU_LEFT_SHIFT
+                || charCode == NIKHAHIT_LEFT_SHIFT;
+        }
+
+        private bool IsLowerLevel(int charCode)
+        {
+            return charCode == SARA_U || charCode == SARA_UU || charCode == PHINTHU;
+        }
+
+        private bool IsSaraAm(int charCode)
+        {
+            return charCode == SARA_AM;
+        }
+
+        private int CountSaraAm()
+        {
+            int count = 0;
+            for (int i = 0; m_InternalParsingBuffer[i].unicode != 0; i++)
+            {
+                if (m_InternalParsingBuffer[i].unicode == SARA_AM)
+                {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        public void FixThaiVowel()
+        {
+            //ExplodeSaraAm();
+
+            int prevCode = 0;
+            int cutCode = 0;
+            for (int i = 0; m_InternalParsingBuffer[i].unicode != 0; i++)
+            {
+                int code = m_InternalParsingBuffer[i].unicode;
+
+                if (IsUpperLevel1(code) && IsUpTail(prevCode))
+                {
+                    m_InternalParsingBuffer[i].unicode = GetShiftLeftCharacter(code);
+                }
+                else if (IsUpperLevel2(code))
+                {
+                    if (IsLowerLevel(prevCode))
+                    {
+                        prevCode = m_InternalParsingBuffer[i - 2].unicode;
+                    }
+
+                    if (IsUpTail(prevCode))
+                    {
+                        m_InternalParsingBuffer[i].unicode = GetPullDownAndShiftLeftCharacter(code);
+                    }
+                    else if (IsLeftShiftUpperLevel1(prevCode))
+                    {
+                        m_InternalParsingBuffer[i].unicode = GetShiftLeftCharacter(code);
+                    }
+                    else if (!IsUpperLevel1(prevCode))
+                    {
+                        m_InternalParsingBuffer[i].unicode = GetPullDownCharacter(code);
+                    }
+                }
+                else if (IsLowerLevel(code) && IsDownTail(prevCode))
+                {
+                    cutCode = GetCutTailCharacter(prevCode);
+
+                    if (prevCode != cutCode)
+                    {
+                        m_InternalParsingBuffer[i - 1].unicode = cutCode;
+                    }
+                    else
+                    {
+                        m_InternalParsingBuffer[i].unicode = GetPullDownCharacter(code);
+                    }
+                }
+                else if (IsSaraAm(code) && i > 0)
+                {
+                    if (IsPullDown(prevCode))
+                    {
+                        m_InternalParsingBuffer[i - 1].unicode = GetPullUpCharacter(prevCode);
+                    }
+                }
+
+                prevCode = m_InternalParsingBuffer[i].unicode;
+            }
+        }
+        #endregion
     }
 }
