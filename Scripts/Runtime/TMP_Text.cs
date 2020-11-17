@@ -192,10 +192,10 @@ namespace TMPro
         [SerializeField]
         protected Material m_sharedMaterial;
         protected Material m_currentMaterial;
-        protected MaterialReference[] m_materialReferences = new MaterialReference[32];
-        protected Dictionary<int, int> m_materialReferenceIndexLookup = new Dictionary<int, int>();
+        protected static MaterialReference[] m_materialReferences = new MaterialReference[4];
+        protected static Dictionary<int, int> m_materialReferenceIndexLookup = new Dictionary<int, int>();
 
-        protected TMP_TextProcessingStack<MaterialReference> m_materialReferenceStack = new TMP_TextProcessingStack<MaterialReference>(new MaterialReference[16]);
+        protected static TMP_TextProcessingStack<MaterialReference> m_materialReferenceStack = new TMP_TextProcessingStack<MaterialReference>(new MaterialReference[16]);
         protected int m_currentMaterialIndex;
 
 
@@ -456,7 +456,7 @@ namespace TMPro
             set { if (m_fontSize == value) return; m_havePropertiesChanged = true; m_fontSize = value; if (!m_enableAutoSizing) m_fontSizeBase = m_fontSize; SetVerticesDirty(); SetLayoutDirty(); }
         }
         [SerializeField]
-        protected float m_fontSize = 36; // Font Size
+        protected float m_fontSize = -99; // Font Size
         protected float m_currentFontSize; // Temporary Font Size affected by tags
         [SerializeField] // TODO: Review if this should be serialized
         protected float m_fontSizeBase = 36;
@@ -1462,10 +1462,9 @@ namespace TMPro
         protected float m_fontScale; // Scaling of the font based on Atlas true Font Size and Rendered Font Size.
         protected float m_fontScaleMultiplier; // Used for handling of superscript and subscript.
 
-        protected char[] m_htmlTag = new char[128]; // Maximum length of rich text tag. This is preallocated to avoid GC.
-        protected RichTextTagAttribute[] m_xmlAttribute = new RichTextTagAttribute[8];
-
-        protected float[] m_attributeParameterValues = new float[16];
+        private static char[] m_htmlTag = new char[128]; // Maximum length of rich text tag. This is pre-allocated to avoid GC.
+        private static RichTextTagAttribute[] m_xmlAttribute = new RichTextTagAttribute[8];
+        private static float[] m_attributeParameterValues = new float[16];
 
         protected float tag_LineIndent = 0;
         protected float tag_Indent = 0;
@@ -1516,14 +1515,14 @@ namespace TMPro
         protected int m_totalCharacterCount;
 
         // Structures used to save the state of the text layout in conjunction with line breaking / word wrapping.
-        protected WordWrapState m_SavedWordWrapState = new WordWrapState();
-        protected WordWrapState m_SavedLineState = new WordWrapState();
-        protected WordWrapState m_SavedEllipsisState = new WordWrapState();
-        protected WordWrapState m_SavedLastValidState = new WordWrapState();
-        protected WordWrapState m_SavedSoftLineBreakState = new WordWrapState();
+        protected static WordWrapState m_SavedWordWrapState = new WordWrapState();
+        protected static WordWrapState m_SavedLineState = new WordWrapState();
+        protected static WordWrapState m_SavedEllipsisState = new WordWrapState();
+        protected static WordWrapState m_SavedLastValidState = new WordWrapState();
+        protected static WordWrapState m_SavedSoftLineBreakState = new WordWrapState();
 
         //internal Stack<WordWrapState> m_LineBreakCandiateStack = new Stack<WordWrapState>();
-        internal TMP_TextProcessingStack<WordWrapState> m_EllipsisInsertionCandidateStack = new TMP_TextProcessingStack<WordWrapState>(8, 8);
+        internal static TMP_TextProcessingStack<WordWrapState> m_EllipsisInsertionCandidateStack = new TMP_TextProcessingStack<WordWrapState>(8, 8);
 
         // Fields whose state is saved in conjunction with text parsing and word wrapping.
         protected int m_characterCount;
@@ -4842,17 +4841,17 @@ namespace TMPro
         /// <returns></returns>
         public Vector2 GetPreferredValues()
         {
-            if (m_isInputParsingRequired || m_isTextTruncated)
-            {
-                m_isCalculatingPreferredValues = true;
-                ParseInputText();
-            }
-
             // CALCULATE PREFERRED WIDTH
+            m_isPreferredWidthDirty = true;
             float preferredWidth = GetPreferredWidth();
 
             // CALCULATE PREFERRED HEIGHT
+            m_isPreferredHeightDirty = true;
             float preferredHeight = GetPreferredHeight();
+
+            // Reset dirty states as we always want to recalculate preferred values when this function is called.
+            m_isPreferredWidthDirty = true;
+            m_isPreferredHeightDirty = true;
 
             return new Vector2(preferredWidth, preferredHeight);
         }
@@ -4952,11 +4951,8 @@ namespace TMPro
             // Set Margins to Infinity
             Vector2 margin = k_LargePositiveVector2;
 
-            if (m_isInputParsingRequired || m_isTextTruncated)
-            {
-                m_isCalculatingPreferredValues = true;
-                ParseInputText();
-            }
+            m_isCalculatingPreferredValues = true;
+            ParseInputText();
 
             m_AutoSizeIterationCount = 0;
             float preferredWidth = CalculatePreferredValues(ref fontSize, margin, false, false).x;
@@ -5013,11 +5009,8 @@ namespace TMPro
 
             Vector2 margin = new Vector2(m_marginWidth != 0 ? m_marginWidth : k_LargePositiveFloat, k_LargePositiveFloat);
 
-            if (m_isInputParsingRequired || m_isTextTruncated)
-            {
-                m_isCalculatingPreferredValues = true;
-                ParseInputText();
-            }
+            m_isCalculatingPreferredValues = true;
+            ParseInputText();
 
             // Reset Text Auto Size iteration tracking.
             m_IsAutoSizePointSizeSet = false;
@@ -5458,7 +5451,7 @@ namespace TMPro
                 GlyphMetrics currentGlyphMetrics = m_cached_TextElement.m_Glyph.metrics;
 
                 // Optimization to avoid calling this more than once per character.
-                bool isWhiteSpace = char.IsWhiteSpace((char)charCode);
+                bool isWhiteSpace = charCode <= 0xFFFF && char.IsWhiteSpace((char)charCode);
 
 
                 // Handle Kerning if Enabled.
@@ -7142,7 +7135,7 @@ namespace TMPro
         /// </summary>
         protected void LoadDefaultSettings()
         {
-            if (m_fontAsset == null || m_isWaitingOnResourceLoad)
+            if (m_fontSize == -99 || m_isWaitingOnResourceLoad)
             {
                 m_rectTransform = this.rectTransform;
 
@@ -8651,7 +8644,7 @@ namespace TMPro
                             // No material specified then use default font asset material.
                             m_currentMaterial = tempFont.material;
 
-                            m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, tempFont, m_materialReferences, m_materialReferenceIndexLookup);
+                            m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, tempFont, ref m_materialReferences, m_materialReferenceIndexLookup);
 
                             m_materialReferenceStack.Add(m_materialReferences[m_currentMaterialIndex]);
                         }
@@ -8661,7 +8654,7 @@ namespace TMPro
                             {
                                 m_currentMaterial = tempMaterial;
 
-                                m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, tempFont, m_materialReferences, m_materialReferenceIndexLookup);
+                                m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, tempFont, ref m_materialReferences, m_materialReferenceIndexLookup);
 
                                 m_materialReferenceStack.Add(m_materialReferences[m_currentMaterialIndex]);
                             }
@@ -8678,7 +8671,7 @@ namespace TMPro
 
                                 m_currentMaterial = tempMaterial;
 
-                                m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, tempFont, m_materialReferences, m_materialReferenceIndexLookup);
+                                m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, tempFont, ref m_materialReferences, m_materialReferenceIndexLookup);
 
                                 m_materialReferenceStack.Add(m_materialReferences[m_currentMaterialIndex]);
                             }
@@ -8730,7 +8723,7 @@ namespace TMPro
 
                             m_currentMaterial = tempMaterial;
 
-                            m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, m_currentFontAsset, m_materialReferences, m_materialReferenceIndexLookup);
+                            m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, m_currentFontAsset, ref m_materialReferences, m_materialReferenceIndexLookup);
 
                             m_materialReferenceStack.Add(m_materialReferences[m_currentMaterialIndex]);
                         }
@@ -8750,7 +8743,7 @@ namespace TMPro
 
                             m_currentMaterial = tempMaterial;
 
-                            m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, m_currentFontAsset , m_materialReferences, m_materialReferenceIndexLookup);
+                            m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentMaterial, m_currentFontAsset, ref m_materialReferences, m_materialReferenceIndexLookup);
 
                             m_materialReferenceStack.Add(m_materialReferences[m_currentMaterialIndex]);
                         }
@@ -9311,7 +9304,7 @@ namespace TMPro
                         if (m_spriteIndex == -1) return false;
 
                         // Material HashCode for the Sprite Asset is the Sprite Asset Hash Code
-                        m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentSpriteAsset.material, m_currentSpriteAsset, m_materialReferences, m_materialReferenceIndexLookup);
+                        m_currentMaterialIndex = MaterialReference.AddMaterialReference(m_currentSpriteAsset.material, m_currentSpriteAsset, ref m_materialReferences, m_materialReferenceIndexLookup);
 
                         m_textElementType = TMP_TextElementType.Sprite;
                         return true;
