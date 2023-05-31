@@ -349,7 +349,7 @@ namespace TMPro.EditorUtilities
                 oldLeft = matrix.MultiplyPoint(oldLeft);
                 newLeft = matrix.MultiplyPoint(newLeft);
 
-                float delta = oldLeft.x - newLeft.x;
+                float delta = (oldLeft.x - newLeft.x) * lossyScale.x;
                 marginOffset.x += -delta / lossyScale.x;
                 //Debug.Log("Left Margin H0:" + handlePoints[0] + "  H1:" + handlePoints[1]);
                 hasChanged = true;
@@ -363,7 +363,7 @@ namespace TMPro.EditorUtilities
                 oldTop = matrix.MultiplyPoint(oldTop);
                 newTop = matrix.MultiplyPoint(newTop);
 
-                float delta = oldTop.y - newTop.y;
+                float delta = (oldTop.y - newTop.y) * lossyScale.y;
                 marginOffset.y += delta / lossyScale.y;
                 //Debug.Log("Top Margin H1:" + handlePoints[1] + "  H2:" + handlePoints[2]);
                 hasChanged = true;
@@ -377,7 +377,7 @@ namespace TMPro.EditorUtilities
                 oldRight = matrix.MultiplyPoint(oldRight);
                 newRight = matrix.MultiplyPoint(newRight);
 
-                float delta = oldRight.x - newRight.x;
+                float delta = (oldRight.x - newRight.x) * lossyScale.x;
                 marginOffset.z += delta / lossyScale.x;
                 hasChanged = true;
                 //Debug.Log("Right Margin H2:" + handlePoints[2] + "  H3:" + handlePoints[3]);
@@ -391,7 +391,7 @@ namespace TMPro.EditorUtilities
                 oldBottom = matrix.MultiplyPoint(oldBottom);
                 newBottom = matrix.MultiplyPoint(newBottom);
 
-                float delta = oldBottom.y - newBottom.y;
+                float delta = (oldBottom.y - newBottom.y) * lossyScale.y;
                 marginOffset.w += -delta / lossyScale.y;
                 hasChanged = true;
                 //Debug.Log("Bottom Margin H0:" + handlePoints[0] + "  H3:" + handlePoints[3]);
@@ -435,8 +435,7 @@ namespace TMPro.EditorUtilities
                 // Need to also compare string content due to issue related to scroll bar drag handle
                 if (EditorGUI.EndChangeCheck() && m_TextProp.stringValue != m_TextComponent.text)
                 {
-                    m_TextComponent.m_inputSource = TMP_Text.TextInputSources.Text;
-                    m_TextComponent.m_isInputParsingRequired = true;
+                    m_TextComponent.m_inputSource = TMP_Text.TextInputSources.TextInputBox;
                     m_HavePropertiesChanged = true;
                 }
 
@@ -533,7 +532,7 @@ namespace TMPro.EditorUtilities
             }
 
             Rect rect;
-
+            
             // FIX THAI VOWEL.
             EditorGUI.BeginChangeCheck();
             EditorGUILayout.PropertyField(m_FixThaiVowelProp, k_FixThaiVowelLabel);
@@ -942,8 +941,9 @@ namespace TMPro.EditorUtilities
             int oldIndent = EditorGUI.indentLevel;
             EditorGUI.indentLevel = 0;
 
-            rect.x += EditorGUIUtility.labelWidth;
-            rect.width = (rect.width - EditorGUIUtility.labelWidth - 3f) / 2f;
+            float currentLabelWidth = EditorGUIUtility.labelWidth;
+            rect.x += currentLabelWidth;
+            rect.width = (rect.width - currentLabelWidth - 3f) / 2f;
 
             EditorGUIUtility.labelWidth = Mathf.Min(rect.width * 0.55f, 80f);
 
@@ -952,16 +952,16 @@ namespace TMPro.EditorUtilities
             EditorGUI.PropertyField(rect, m_WordSpacingProp, k_WordSpacingLabel);
 
             rect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
-            EditorGUIUtility.labelWidth = 0;
-            rect.x += EditorGUIUtility.labelWidth;
-            rect.width = (rect.width - EditorGUIUtility.labelWidth -3f) / 2f;
+
+            rect.x += currentLabelWidth;
+            rect.width = (rect.width - currentLabelWidth -3f) / 2f;
             EditorGUIUtility.labelWidth = Mathf.Min(rect.width * 0.55f, 80f);
 
             EditorGUI.PropertyField(rect, m_LineSpacingProp, k_LineSpacingLabel);
             rect.x += rect.width + 3f;
             EditorGUI.PropertyField(rect, m_ParagraphSpacingProp, k_ParagraphSpacingLabel);
 
-            EditorGUIUtility.labelWidth = 0;
+            EditorGUIUtility.labelWidth = currentLabelWidth;
             EditorGUI.indentLevel = oldIndent;
 
             if (EditorGUI.EndChangeCheck())
@@ -1012,7 +1012,6 @@ namespace TMPro.EditorUtilities
             {
                 m_EnableWordWrappingProp.boolValue = wrapSelection == 1;
                 m_HavePropertiesChanged = true;
-                m_TextComponent.m_isInputParsingRequired = true;
             }
 
             EditorGUI.EndProperty();
@@ -1088,7 +1087,6 @@ namespace TMPro.EditorUtilities
             if (EditorGUI.EndChangeCheck())
             {
                 m_HavePropertiesChanged = true;
-                m_TextComponent.m_isInputParsingRequired = true;
             }
 
             EditorGUILayout.Space();

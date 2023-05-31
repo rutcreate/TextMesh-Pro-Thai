@@ -21,6 +21,16 @@ namespace TMPro
         public static int ID_UnderlayDilate;
         public static int ID_UnderlaySoftness;
 
+        /// <summary>
+        /// Property ID for the _UnderlayOffset shader property used by URP and HDRP shaders
+        /// </summary>
+        public static int ID_UnderlayOffset;
+
+        /// <summary>
+        /// Property ID for the _UnderlayIsoPerimeter shader property used by URP and HDRP shaders
+        /// </summary>
+        public static int ID_UnderlayIsoPerimeter;
+
         public static int ID_WeightNormal;
         public static int ID_WeightBold;
 
@@ -154,6 +164,9 @@ namespace TMPro
                 ID_UnderlayOffsetY = Shader.PropertyToID("_UnderlayOffsetY");
                 ID_UnderlayDilate = Shader.PropertyToID("_UnderlayDilate");
                 ID_UnderlaySoftness = Shader.PropertyToID("_UnderlaySoftness");
+
+                ID_UnderlayOffset = Shader.PropertyToID("_UnderlayOffset");
+                ID_UnderlayIsoPerimeter = Shader.PropertyToID("_UnderlayIsoPerimeter");
 
                 ID_WeightNormal = Shader.PropertyToID("_WeightNormal");
                 ID_WeightBold = Shader.PropertyToID("_WeightBold");
